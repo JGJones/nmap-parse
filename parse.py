@@ -14,7 +14,8 @@ def command_args():
     parser.add_argument('-o', dest='output', nargs='?', metavar='filename',
                         help='Name of file to output to. If not used, defaults to report.csv',
                         const='report', default='report')
-    parser.add_argument('-x', dest='xlsx', metavar='', help='Output to XLSX format instead', default=False)
+    parser.add_argument('-x', dest='xlsx', nargs='?', metavar='', help='Output to XLSX format instead',
+                        const='report', default=False)
     parser.add_argument('-v', dest='verbose', help='Verbose output', default=False, action='store_true')
     return parser.parse_args()
 
@@ -82,13 +83,38 @@ def print_basic(nmapxml, results, output, verbose):
         if verbose:
             print(towrite)
 
-def print_xlsx(ip, port, serv, banner, xlsx_file):
+def print_xlsx(results, output):
     # Do some output
+    # Create XLSX file and add a worksheet
+    output = str(output) + '.xlsx'
+    with xlsxwriter.Workbook(output) as workbook:
+        worksheet = workbook.add_worksheet()
+        # Add formatting
+        bold = workbook.add_format({'bold': True})
 
-    worksheet.write('A1', 'IP Address', bold)
-    worksheet.write('B1', 'Port', bold)
-    worksheet.write('C1', 'Service', bold)
-    worksheet.write('D1', 'Version', bold)
+        worksheet.write('A1', 'IP Address', bold)
+        worksheet.write('B1', 'Port', bold)
+        worksheet.write('C1', 'Service', bold)
+        worksheet.write('D1', 'Version', bold)
+
+        for ip in results.keys():
+            #worksheet.write += 'HOST: ' + ip + '-' + results[ip]['hostname'] + '\n'
+            listofscan = list(results[ip]['scanopen'])
+            x = 1
+            for i in listofscan:
+                x = x + 1
+                worksheet.write(('A'+str(x)), str(ip))
+                worksheet.write(('B'+str(x)), str(i[0]))
+                worksheet.write(('C'+str(x)), str(i[1]))
+                worksheet.write(('D'+str(x)), str(i[2]))
+
+            listofscan = list(results[ip]['scanclosed'])
+            x = 1
+            for i in listofscan:
+                x = x + 1
+                worksheet.write(('A' + str(x)), str(ip))
+                worksheet.write(('B' + str(x)), str(i[0]))
+                worksheet.write(('C' + str(x)), str(i[1]))
 
 
 def main():
@@ -96,19 +122,13 @@ def main():
     args = command_args()
     ''' Load the nmap XML file '''
     nmapxml = NmapParser.parse_fromfile(args.filename)
-    output = args.output
+    #output = args.output
     ''' do the parsing stuff here '''
 
-    if args.xlsx:  # if -x is being used, then this shows
-        print('filename is ' + args.xlsx)
-        # Create XLSX file and add a worksheet using global variables
-        workbook = xlsxwriter.Workbook(args.xlsx)
-        worksheet = workbook.add_worksheet()
-        # Add formatting
-        bold = workbook.add_format({'bold': True})
-
     results = get_results(nmapxml)
-    print_basic(nmapxml, results, output, args.verbose)
+    print_basic(nmapxml, results, args.output, args.verbose)
+    if args.xlsx:  # if -x is being used, then this shows
+        print_xlsx(results, args.xlsx)
 
 
 main()
